@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -23,28 +23,22 @@
   <link href="assets/css/main.css" rel="stylesheet" media="screen">
   <style>
     body {
+      margin: 0;
+      padding: 0;
       background-color: black;
+      overflow: hidden;
     }
 
-    .center {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+    canvas {
+      display: block;
     }
-
-    .text {
-      color: white;
-      font-size: 24px;
-    }
-
   </style>
 </head>
 
 <body>
-  <div class="center">
-    <div class="text">will [at] willmhawkins [dot] com</div>
-  </div>
+  <canvas id="wormhole-canvas"></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0"></script>
+  <script src="script.js"></script>
 </body>
 
 </html>
