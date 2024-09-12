@@ -449,6 +449,9 @@ function handleSecretCommand(command) {
                 terminalHistory.push('Usage: ai <message> or ai init');
             }
             break;
+        case 'margo':
+            terminalHistory.push('I love you');
+            break;
         case 'help':
             terminalHistory.push('Available commands: ls, cd, pwd, cat, clear, tree, echo, touch, rm, mkdir, mv, cp, grep, warp, glitch, hack, void, pulse, ai, help');
             break;
