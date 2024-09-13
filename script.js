@@ -8,7 +8,7 @@ let mouseY = 0;
 const personalInfo = [
     '> NAME: WILL HAWKINS',
     '> LINKEDIN: /in/will-hawkins-iv',
-    '> X: @CynicImpaLa',
+    // '> X: @CynicImpaLa',
     '> EMAIL: will@willmhawkins.com'
 ];
 
@@ -37,7 +37,7 @@ const fileSystem = {
             'hidden': {
                 type: 'directory',
                 contents: {
-                    '.secret': { type: 'file', content: 'Congratulations! You found the secret. Email will@willmhawkins.com with the subject "I found the void\'s secret" to discuss potential collaboration!' }
+                    '.secret': { type: 'file', content: 'Congratulations. You found the secret. Email will@willmhawkins.com with the subject "I found the void\'s secret" to discuss potential collaboration.' }
                 }
             }
         }
@@ -46,7 +46,6 @@ const fileSystem = {
 
 let warpSpeed = 1;
 let glitchEffect = 0;
-let hackEffect = 0;
 let voidEffect = 0;
 let pulseEffect = 0;
 
@@ -54,6 +53,18 @@ let pulseEffect = 0;
 let pipe = null;
 let conversation = [];
 let transformersLoaded = false;
+let snake = [];
+let food = {};
+let snakeDirection = 'right';
+let snakeGame = false;
+let snakeSpeed = 100; // Faster initial speed (milliseconds between moves)
+let snakeLevel = 1;
+let snakeLevelThreshold = 5; // Score needed to increase level
+let snakeInterval;
+let snakeScore = 0;
+let keysPressed = {};
+let snakeUpdateInterval;
+let lastSnakeUpdate = Date.now();
 
 // Import the pipeline from Transformers.js
 // import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0/+esm';
@@ -148,9 +159,99 @@ function resizeCanvas() {
     canvas.height = window.innerHeight;
 }
 
+// Add this function to handle the snake game
+function startSnakeGame() {
+    snakeGame = true;
+    snake = [{ x: 10, y: 10 }];
+    snakeDirection = 'right';
+    snakeSpeed = 100; // Reset speed when starting a new game
+    snakeLevel = 1;
+    snakeScore = 0;
+    spawnFood();
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    snakeUpdateInterval = setInterval(updateSnakeGame, 1000 / 60); // 60 FPS
+    canvas.focus();
+    terminalHistory.push('Snake game started. Use arrow keys to play, Escape to end.');
+}
+
+function spawnFood() {
+    food = {
+        x: Math.floor(Math.random() * (canvas.width / 20)),
+        y: Math.floor(Math.random() * (canvas.height / 20))
+    };
+}
+
+function handleKeyDown(e) {
+    keysPressed[e.key] = true;
+    e.preventDefault();
+}
+
+function handleKeyUp(e) {
+    delete keysPressed[e.key];
+    e.preventDefault();
+}
+
+function updateSnakeGame() {
+    if (!snakeGame) return;
+
+    // Handle input
+    if (keysPressed['ArrowUp'] && snakeDirection !== 'down') snakeDirection = 'up';
+    if (keysPressed['ArrowDown'] && snakeDirection !== 'up') snakeDirection = 'down';
+    if (keysPressed['ArrowLeft'] && snakeDirection !== 'right') snakeDirection = 'left';
+    if (keysPressed['ArrowRight'] && snakeDirection !== 'left') snakeDirection = 'right';
+    if (keysPressed['Escape']) {
+        endSnakeGame();
+        return;
+    }
+
+    // Update snake position every snakeSpeed ms
+    if (Date.now() - lastSnakeUpdate >= snakeSpeed) {
+        lastSnakeUpdate = Date.now();
+        const head = { ...snake[0] };
+        switch (snakeDirection) {
+            case 'up': head.y--; break;
+            case 'down': head.y++; break;
+            case 'left': head.x--; break;
+            case 'right': head.x++; break;
+        }
+
+        snake.unshift(head);
+
+        if (head.x === food.x && head.y === food.y) {
+            snakeScore++;
+            spawnFood();
+            if (snakeScore % snakeLevelThreshold === 0) {
+                snakeLevel++;
+                snakeSpeed = Math.max(50, snakeSpeed - 10);
+            }
+        } else {
+            snake.pop();
+        }
+
+        if (head.x < 0 || head.x >= canvas.width / 20 ||
+            head.y < 0 || head.y >= canvas.height / 20 ||
+            snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)) {
+            endSnakeGame();
+        }
+    }
+}
+
+function endSnakeGame() {
+    snakeGame = false;
+    clearInterval(snakeUpdateInterval);
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    terminalHistory.push(`Snake game ended. Final Score: ${snakeScore}, Level: ${snakeLevel}`);
+}
+
+// Modify the drawWormhole function to include snake game rendering
 function drawWormhole() {
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // Semi-transparent black background
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the wormhole with reduced opacity
+    ctx.globalAlpha = snakeGame ? 0.3 : 1; // Reduce opacity when snake game is active
 
     ctx.strokeStyle = 'white';
     for (let i = 0; i < 15; i++) {
@@ -173,10 +274,15 @@ function drawWormhole() {
         ctx.stroke();
     }
 
-    ctx.font = '16px monospace';
-    ctx.fillStyle = 'white';
-    ctx.fillText('> ENTER THE VOID', 20, 30);
-    ctx.fillText(`> TIME: ${time.toFixed(2)}`, 20, 60);
+    ctx.globalAlpha = 1; // Reset global alpha
+
+    // Only draw "ENTER" and "TIME" if snake game is not active
+    if (!snakeGame) {
+        ctx.font = '16px monospace';
+        ctx.fillStyle = 'white';
+        ctx.fillText('> ENTER', 20, 30);
+        ctx.fillText(`> TIME: ${time.toFixed(2)}`, 20, 60);
+    }
 
     // Animate and display personal info
     if (showInfo) {
@@ -249,17 +355,6 @@ function drawWormhole() {
         glitchEffect -= 0.01;
     }
 
-    // Hack effect
-    if (hackEffect > 0) {
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
-        for (let i = 0; i < 50; i++) {
-            const x = Math.random() * canvas.width;
-            const y = Math.random() * canvas.height;
-            ctx.fillText(String.fromCharCode(33 + Math.floor(Math.random() * 94)), x, y);
-        }
-        hackEffect -= 0.005;
-    }
-
     // Void effect
     if (voidEffect > 0) {
         ctx.fillStyle = `rgba(0, 0, 0, ${0.8 * voidEffect})`;
@@ -275,6 +370,21 @@ function drawWormhole() {
         ctx.strokeStyle = `rgba(255, 255, 255, ${pulseIntensity * pulseEffect})`;
         ctx.lineWidth = 2 + pulseIntensity * 3;
         pulseEffect -= 0.01;
+    }
+
+    if (snakeGame) {
+        // Draw snake game elements on top of the dimmed wormhole
+        ctx.fillStyle = 'lime';
+        snake.forEach(segment => {
+            ctx.fillRect(segment.x * 20, segment.y * 20, 20, 20);
+        });
+
+        ctx.fillStyle = 'red';
+        ctx.fillRect(food.x * 20, food.y * 20, 20, 20);
+
+        ctx.fillStyle = 'white';
+        ctx.font = '20px Arial';
+        ctx.fillText(`Score: ${snakeScore}  Level: ${snakeLevel}`, 10, 30);
     }
 
     requestAnimationFrame(drawWormhole);
@@ -361,7 +471,7 @@ function handleTabCompletion() {
 }
 
 function getCommandCompletions(partial) {
-    const commands = ['ls', 'cd', 'pwd', 'cat', 'clear', 'tree', 'echo', 'touch', 'rm', 'mkdir', 'mv', 'cp', 'grep', 'help', 'warp', 'glitch', 'hack', 'void', 'pulse', 'ai'];
+    const commands = ['ls', 'cd', 'pwd', 'cat', 'clear', 'tree', 'echo', 'grep', 'help', 'warp', 'glitch', 'void', 'pulse', 'ai', 'snake'];
     return commands.filter(cmd => cmd.startsWith(partial));
 }
 
@@ -407,21 +517,6 @@ function handleSecretCommand(command) {
         case 'echo':
             terminalHistory.push(args.slice(1).join(' '));
             break;
-        case 'touch':
-            touchFile(args[1]);
-            break;
-        case 'rm':
-            removeFile(args[1]);
-            break;
-        case 'mkdir':
-            makeDirectory(args[1]);
-            break;
-        case 'mv':
-            moveFile(args[1], args[2]);
-            break;
-        case 'cp':
-            copyFile(args[1], args[2]);
-            break;
         case 'grep':
             grepFile(args[1], args.slice(2).join(' '));
             break;
@@ -430,9 +525,6 @@ function handleSecretCommand(command) {
             break;
         case 'glitch':
             glitchCommand();
-            break;
-        case 'hack':
-            hackCommand();
             break;
         case 'void':
             voidCommand();
@@ -449,11 +541,14 @@ function handleSecretCommand(command) {
                 terminalHistory.push('Usage: ai <message> or ai init');
             }
             break;
+        case 'snake':
+            startSnakeGame();
+            break;
         case 'margo':
             terminalHistory.push('I love you');
             break;
         case 'help':
-            terminalHistory.push('Available commands: ls, cd, pwd, cat, clear, tree, echo, touch, rm, mkdir, mv, cp, grep, warp, glitch, hack, void, pulse, ai, help');
+            terminalHistory.push('Available commands: ls, cd, pwd, cat, clear, tree, echo, grep, warp, glitch, void, pulse, ai, snake, help');
             break;
         case '':
             // Do nothing for empty input
@@ -552,117 +647,6 @@ function treeDirectory(path, prefix = '') {
     });
 }
 
-function touchFile(path) {
-    if (!path) {
-        terminalHistory.push('touch: missing file operand');
-        return;
-    }
-
-    const newPath = resolvePath(path);
-    const parentDir = getPath(newPath.substring(0, newPath.lastIndexOf('/')));
-    const fileName = newPath.split('/').pop();
-
-    if (!parentDir || parentDir.type !== 'directory') {
-        terminalHistory.push('touch: cannot touch file: No such directory');
-        return;
-    }
-
-    if (parentDir.contents[fileName]) {
-        terminalHistory.push(`touch: ${fileName} already exists`);
-    } else {
-        parentDir.contents[fileName] = { type: 'file', content: '' };
-        terminalHistory.push(`Created file: ${fileName}`);
-    }
-}
-
-function removeFile(path) {
-    if (!path) {
-        terminalHistory.push('rm: missing operand');
-        return;
-    }
-    const resolvedPath = resolvePath(path);
-    const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/'));
-    const fileName = resolvedPath.split('/').pop();
-    const parentDir = getPath(parentPath);
-
-    if (parentDir && parentDir.type === 'directory' && parentDir.contents[fileName]) {
-        delete parentDir.contents[fileName];
-        terminalHistory.push(`Removed: ${fileName}`);
-    } else {
-        terminalHistory.push('rm: cannot remove file: No such file or directory');
-    }
-}
-
-function makeDirectory(path) {
-    if (!path) {
-        terminalHistory.push('mkdir: missing operand');
-        return;
-    }
-    const newPath = resolvePath(path);
-    const parentPath = newPath.substring(0, newPath.lastIndexOf('/'));
-    const dirName = newPath.split('/').pop();
-    const parentDir = getPath(parentPath);
-
-    if (parentDir && parentDir.type === 'directory') {
-        if (parentDir.contents[dirName]) {
-            terminalHistory.push(`mkdir: cannot create directory '${dirName}': File exists`);
-        } else {
-            parentDir.contents[dirName] = { type: 'directory', contents: {} };
-            terminalHistory.push(`Created directory: ${dirName}`);
-        }
-    } else {
-        terminalHistory.push('mkdir: cannot create directory: No such file or directory');
-    }
-}
-
-function moveFile(source, destination) {
-    if (!source || !destination) {
-        terminalHistory.push('mv: missing file operand');
-        return;
-    }
-    const sourcePath = resolvePath(source);
-    const destPath = resolvePath(destination);
-    const sourceParentPath = sourcePath.substring(0, sourcePath.lastIndexOf('/'));
-    const sourceFileName = sourcePath.split('/').pop();
-    const sourceParent = getPath(sourceParentPath);
-    const destParent = getPath(destPath.substring(0, destPath.lastIndexOf('/')));
-
-    if (sourceParent && sourceParent.type === 'directory' && sourceParent.contents[sourceFileName]) {
-        if (destParent && destParent.type === 'directory') {
-            const item = sourceParent.contents[sourceFileName];
-            delete sourceParent.contents[sourceFileName];
-            destParent.contents[destPath.split('/').pop()] = item;
-            terminalHistory.push(`Moved: ${sourceFileName} to ${destination}`);
-        } else {
-            terminalHistory.push('mv: cannot move file: Destination is not a directory');
-        }
-    } else {
-        terminalHistory.push('mv: cannot move file: No such file or directory');
-    }
-}
-
-function copyFile(source, destination) {
-    if (!source || !destination) {
-        terminalHistory.push('cp: missing file operand');
-        return;
-    }
-    const sourcePath = resolvePath(source);
-    const destPath = resolvePath(destination);
-    const sourceFile = getPath(sourcePath);
-    const destParent = getPath(destPath.substring(0, destPath.lastIndexOf('/')));
-
-    if (sourceFile && sourceFile.type === 'file') {
-        if (destParent && destParent.type === 'directory') {
-            destParent.contents[destPath.split('/').pop()] = JSON.parse(JSON.stringify(sourceFile));
-            terminalHistory.push(`Copied: ${source} to ${destination}`);
-        } else {
-            terminalHistory.push('cp: cannot copy file: Destination is not a directory');
-        }
-    } else {
-        terminalHistory.push('cp: cannot copy file: No such file or directory');
-    }
-}
-
 function grepFile(pattern, path) {
     if (!pattern || !path) {
         terminalHistory.push('grep: missing operands');
@@ -697,11 +681,6 @@ function glitchCommand() {
     terminalHistory.push('Initiating glitch sequence...');
 }
 
-function hackCommand() {
-    hackEffect = 1;
-    terminalHistory.push('Hacking the mainframe...');
-}
-
 function voidCommand() {
     voidEffect = 1;
     terminalHistory.push('Entering the void...');
@@ -710,4 +689,57 @@ function voidCommand() {
 function pulseCommand() {
     pulseEffect = 1;
     terminalHistory.push('Initiating pulse sequence...');
+}
+
+function updateSnakeGame() {
+    if (!snakeGame) return;
+
+    // Handle input
+    if (keysPressed['ArrowUp'] && snakeDirection !== 'down') snakeDirection = 'up';
+    if (keysPressed['ArrowDown'] && snakeDirection !== 'up') snakeDirection = 'down';
+    if (keysPressed['ArrowLeft'] && snakeDirection !== 'right') snakeDirection = 'left';
+    if (keysPressed['ArrowRight'] && snakeDirection !== 'left') snakeDirection = 'right';
+    if (keysPressed['Escape']) {
+        endSnakeGame();
+        return;
+    }
+
+    // Update snake position every snakeSpeed ms
+    if (Date.now() - lastSnakeUpdate >= snakeSpeed) {
+        lastSnakeUpdate = Date.now();
+        const head = { ...snake[0] };
+        switch (snakeDirection) {
+            case 'up': head.y--; break;
+            case 'down': head.y++; break;
+            case 'left': head.x--; break;
+            case 'right': head.x++; break;
+        }
+
+        snake.unshift(head);
+
+        if (head.x === food.x && head.y === food.y) {
+            snakeScore++;
+            spawnFood();
+            if (snakeScore % snakeLevelThreshold === 0) {
+                snakeLevel++;
+                snakeSpeed = Math.max(50, snakeSpeed - 10);
+            }
+        } else {
+            snake.pop();
+        }
+
+        if (head.x < 0 || head.x >= canvas.width / 20 ||
+            head.y < 0 || head.y >= canvas.height / 20 ||
+            snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)) {
+            endSnakeGame();
+        }
+    }
+}
+
+function endSnakeGame() {
+    snakeGame = false;
+    clearInterval(snakeUpdateInterval);
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    terminalHistory.push(`Snake game ended. Final Score: ${snakeScore}, Level: ${snakeLevel}`);
 }
