@@ -57,9 +57,9 @@ let snake = [];
 let food = {};
 let snakeDirection = 'right';
 let snakeGame = false;
-let snakeSpeed = 100; // Faster initial speed (milliseconds between moves)
+let snakeSpeed = 80; // Faster initial speed (milliseconds between moves)
 let snakeLevel = 1;
-let snakeLevelThreshold = 5; // Score needed to increase level
+let snakeLevelThreshold = 3; // Score needed to increase level
 let snakeInterval;
 let snakeScore = 0;
 let keysPressed = {};
@@ -164,7 +164,7 @@ function startSnakeGame() {
     snakeGame = true;
     snake = [{ x: 10, y: 10 }];
     snakeDirection = 'right';
-    snakeSpeed = 100; // Reset speed when starting a new game
+    snakeSpeed = 80; // Reset speed when starting a new game
     snakeLevel = 1;
     snakeScore = 0;
     spawnFood();
@@ -223,7 +223,7 @@ function updateSnakeGame() {
             spawnFood();
             if (snakeScore % snakeLevelThreshold === 0) {
                 snakeLevel++;
-                snakeSpeed = Math.max(50, snakeSpeed - 10);
+                snakeSpeed = Math.max(30, snakeSpeed - 15); // Faster speed increase
             }
         } else {
             snake.pop();
@@ -670,7 +670,7 @@ function warpCommand(speed) {
     const newSpeed = parseFloat(speed);
     if (!isNaN(newSpeed) && newSpeed > 0 && newSpeed <= 10) {
         warpSpeed = newSpeed;
-        terminalHistory.push(`Warp speed set to ${warpSpeed}`);
+        terminalHistory.push(`Warp speed set to ${warpSpeed} `);
     } else {
         terminalHistory.push('Usage: warp <speed> (1-10)');
     }
@@ -722,7 +722,7 @@ function updateSnakeGame() {
             spawnFood();
             if (snakeScore % snakeLevelThreshold === 0) {
                 snakeLevel++;
-                snakeSpeed = Math.max(50, snakeSpeed - 10);
+                snakeSpeed = Math.max(30, snakeSpeed - 15); // Faster speed increase
             }
         } else {
             snake.pop();
@@ -741,5 +741,5 @@ function endSnakeGame() {
     clearInterval(snakeUpdateInterval);
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('keyup', handleKeyUp);
-    terminalHistory.push(`Snake game ended. Final Score: ${snakeScore}, Level: ${snakeLevel}`);
+    terminalHistory.push(`Snake game ended. Final Score: ${snakeScore}, Level: ${snakeLevel} `);
 }
