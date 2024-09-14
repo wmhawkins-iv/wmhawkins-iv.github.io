@@ -8,7 +8,7 @@ let mouseY = 0;
 const personalInfo = [
     '> NAME: WILL HAWKINS',
     '> LINKEDIN: /in/will-hawkins-iv',
-    // '> X: @CynicImpaLa',
+    '> X: @willmhawkins',
     '> EMAIL: will@willmhawkins.com'
 ];
 
