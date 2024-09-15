@@ -6,15 +6,16 @@ let mouseX = 0;
 let mouseY = 0;
 
 const personalInfo = [
-    '> NAME: WILL HAWKINS',
+    '> NAME:     WILL HAWKINS',
     '> LINKEDIN: /in/will-hawkins-iv',
-    '> X: @willmhawkins',
-    '> EMAIL: will@willmhawkins.com'
+    '> X:        @willmhawkins',
+    '> EMAIL:    will@willmhawkins.com'
 ];
 
 let showInfo = false;
 let infoAnimation = 0;
-let hoverLink = false;
+let hoverLinkedIn = false;
+let hoverX = false;
 let hoverTransition = 0;
 
 let secretConsole = '';
@@ -292,7 +293,7 @@ function drawWormhole() {
     }
 
     // Update hover transition
-    if (hoverLink) {
+    if (hoverLinkedIn || hoverX) {
         hoverTransition = Math.min(hoverTransition + 0.05, 1);
     } else {
         hoverTransition = Math.max(hoverTransition - 0.05, 0);
@@ -305,10 +306,16 @@ function drawWormhole() {
             // Special handling for LinkedIn
             if (index === 1) {
                 let pulse = Math.sin(time * 2 / 3) * 0.1 + 0.9;
-                let r = 255 - (155 * hoverTransition);
+                let r = 255 - (155 * (hoverLinkedIn ? hoverTransition : 0));
                 let g = 255;
-                let b = 255 - (155 * hoverTransition);
-                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * (1 + (pulse - 1) * hoverTransition)})`;
+                let b = 255 - (155 * (hoverLinkedIn ? hoverTransition : 0));
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * (1 + (pulse - 1) * (hoverLinkedIn ? hoverTransition : 0))})`;
+            } else if (index === 2) { // Special handling for X
+                let pulse = Math.sin(time * 2 / 3) * 0.1 + 0.9;
+                let r = 255 - (155 * (hoverX ? hoverTransition : 0));
+                let g = 255;
+                let b = 255 - (155 * (hoverX ? hoverTransition : 0));
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * (1 + (pulse - 1) * (hoverX ? hoverTransition : 0))})`;
             } else {
                 ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             }
@@ -406,12 +413,17 @@ function isMouseOverLinkedIn(x, y) {
     return showInfo && x >= 200 && x <= 500 && y >= 35 && y <= 60;
 }
 
+function isMouseOverX(x, y) {
+    return showInfo && x >= 200 && x <= 500 && y >= 60 && y <= 85;
+}
+
 canvas.addEventListener('mousemove', (e) => {
     mouseX = e.clientX;
     mouseY = e.clientY;
 
     showInfo = isMouseOverEnterTheVoid(e.clientX, e.clientY) || isMouseOverInfo(e.clientX, e.clientY);
-    hoverLink = isMouseOverLinkedIn(e.clientX, e.clientY);
+    hoverLinkedIn = isMouseOverLinkedIn(e.clientX, e.clientY);
+    hoverX = isMouseOverX(e.clientX, e.clientY);
 });
 
 canvas.addEventListener('click', (e) => {
@@ -419,6 +431,8 @@ canvas.addEventListener('click', (e) => {
         showInfo = !showInfo;
     } else if (isMouseOverLinkedIn(e.clientX, e.clientY)) {
         window.open('https://www.linkedin.com/in/will-hawkins-iv/', '_blank');
+    } else if (isMouseOverX(e.clientX, e.clientY)) {
+        window.open('https://x.com/willmhawkins', '_blank');
     }
 });
 
