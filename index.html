@@ -31,6 +31,16 @@
 
     canvas {
       display: block;
+      /* Prevent canvas from being blurred on high-DPI displays */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      /* Ensure sharp edges */
+      shape-rendering: crispEdges;
+      /* Prevent anti-aliasing artifacts */
+      transform: translateZ(0);
+      backface-visibility: hidden;
     }
   </style>
 </head>
